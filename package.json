@@ -1,0 +1,13 @@
+{
+  "name": "ugc-material-image-generator",
+  "version": "1.0.0",
+  "private": true,
+  "main": "image2_server.js",
+  "scripts": {
+    "start": "node image2_server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "openai": "^4.104.0"
+  }
+}

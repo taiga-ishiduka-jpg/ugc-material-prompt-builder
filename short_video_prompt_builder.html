@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UGC素材画像プロンプト生成ツール</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --text: #162033;
+      --text-sub: #5c6b80;
+      --line: #dbe3ef;
+      --line-strong: #bfd0ea;
+      --primary: #2f6df6;
+      --primary-dark: #2157cf;
+      --primary-soft: #eaf1ff;
+      --success: #14b86a;
+      --danger: #d94c4c;
+      --shadow: 0 12px 32px rgba(23, 42, 79, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, #eef4ff 0, transparent 30%),
+        radial-gradient(circle at top right, #fff2e9 0, transparent 28%),
+        var(--bg);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .hero-text h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-text p {
+      margin: 0;
+      color: var(--text-sub);
+      font-size: 15px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(191, 208, 234, 0.9);
+      color: var(--text-sub);
+      font-size: 13px;
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(191, 208, 234, 0.75);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .card-inner {
+      padding: 22px;
+    }
+
+    .section + .section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 12px;
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .section-number {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .section-note {
+      margin: -4px 0 14px;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .sub-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-top: -3px;
+    }
+
+    select, input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    select:focus, input[type="text"]:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(47, 109, 246, 0.12);
+    }
+
+    textarea {
+      min-height: 340px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .toggle-btn {
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      transition: 0.18s ease;
+    }
+
+    .toggle-btn.active {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      border-color: #cfe0ff;
+    }
+
+    .summary-box {
+      padding: 14px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fcfdff 0%, #f7faff 100%);
+      min-height: 78px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 14px;
+      padding: 13px 16px;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(47, 109, 246, 0.2);
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-secondary:hover { background: var(--surface-2); }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 20px;
+      color: var(--text-sub);
+    }
+
+    .status.success { color: var(--success); }
+    .status.error { color: var(--danger); }
+
+    .side-title {
+      margin: 0 0 10px;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .side-note {
+      margin: 0 0 14px;
+      color: var(--text-sub);
+      font-size: 14px;
+    }
+
+    .mini-panel {
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .mini-panel h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .mini-panel p {
+      margin: 0;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #fffaf0;
+      border: 1px solid #f5e1b8;
+      color: #7c6330;
+      font-size: 13px;
+    }
+
+    .preview-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .meta-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .meta-card strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .meta-card span {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    .negative-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .negative-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .negative-box p {
+      margin: 10px 0 0;
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    .gen-panel {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .gen-panel h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .gen-panel p {
+      margin: 0 0 12px;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .result-card {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .result-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      background: #eef2f7;
+    }
+
+    .result-card a {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--primary-dark);
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .empty-result {
+      padding: 14px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 14px;
+      color: var(--text-sub);
+      font-size: 13px;
+      background: #fff;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .hero { flex-direction: column; }
+      .hero-badges { justify-content: flex-start; }
+    }
+
+    @media (max-width: 720px) {
+      .container { padding: 18px 12px 28px; }
+      .card-inner { padding: 16px; }
+      .fields, .preview-meta, .result-grid { grid-template-columns: 1fr; }
+      textarea { min-height: 300px; }
+      button { width: 100%; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="hero-text">
+        <h1>UGC素材画像プロンプト生成ツール</h1>
+        <p>選択肢を埋めるだけで、短尺SNS風の自然な画像生成プロンプトを英語で自動生成します。<br>「TikTok風」「BeReal風」「ストーリー投稿風」などの用途に合わせて、本番向けのプロンプトをまとめられます。外部CDNや外部ライブラリは使っていないため、ローカルのブラウザだけで動作します。</p>
+      </div>
+      <div class="hero-badges">
+        <div class="badge">単一HTMLファイル</div>
+        <div class="badge">HTML / CSS / JS込み</div>
+        <div class="badge">スマホ対応</div>
+        <div class="badge">完全ローカル動作</div>
+        <div class="badge">コピー機能付き</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-inner">
+          <div class="section">
+            <h2 class="section-title"><span class="section-number">1</span>ショート動画タイプ</h2>
+            <p class="section-note">最初に、どんなショート動画用の画像にするか選んでください。</p>
+            <div class="fields">
+              <div class="field full">
+                <label for="videoType">ショート動画タイプ</label>
+                <select id="videoType"></select>
+              </div>
+              <div class="field full hidden" id="videoTypeCustomWrap">
+                <label for="videoTypeCustom">その他：自由入力</label>
+                <input type="text" id="videoTypeCustom" placeholder="例：恋愛系の切り抜き風、Vlog風、レビュー動画風" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title"><span class="section-number">2</span>被写体</h2>
+            <p class="section-note">被写体の属性や見え方を選んでください。</p>
+            <div class="fields">
+              <div class="field">
+                <label for="subject">【A】誰を撮るか</label>
+                <select id="subject"></select>
+              </div>
+              <div class="field hidden" id="subjectCustomWrap">
+                <label for="subjectCustomChoice">その他：自由入力</label>
+                <input type="text" id="subjectCustomChoice" placeholder="例：美容師、大学院生、若手経営者" />
+              </div>
+
+              <div class="field">
+                <label for="appearance">【B】見た目</label>
+                <select id="appearance"></select>
+              </div>
+              <div class="field hidden" id="appearanceCustomWrap">
+                <label for="appearanceCustom">その他：自由入力</label>
+                <input type="text" id="appearanceCustom" placeholder="例：やや透明感のある日本人風" />
+              </div>
+
+              <div class="field">
+                <label for="faceVisibility">【C】顔の見え方</label>
+                <select id="faceVisibility"></select>
+              </div>
+              <div class="field hidden" id="faceVisibilityCustomWrap">
+                <label for="faceVisibilityCustom">その他：自由入力</label>
+                <input type="text" id="faceVisibilityCustom" placeholder="例：前髪で半分隠れている" />
+              </div>
+
+              <div class="field full">
+                <label for="subjectExtra">被写体の追加メモ</label>
+                <div class="sub-label">髪型・雰囲気・服の一部など</div>
+                <input type="text" id="subjectExtra" placeholder="例：シンプルなクリーム色のリブニット、肩くらいの暗めの髪" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title"><span class="section-number">3</span>シーン</h2>
+            <p class="section-note">場所・瞬間・時間帯を選んでください。</p>
+            <div class="fields">
+              <div class="field">
+                <label for="place">【A】場所</label>
+                <select id="place"></select>
+              </div>
+              <div class="field hidden" id="placeCustomWrap">
+                <label for="placeCustom">その他：自由入力</label>
+                <input type="text" id="placeCustom" placeholder="例：商店街の端のベンチ、ホテルのロビー" />
+              </div>
+
+              <div class="field">
+                <label for="moment">【B】何をしている瞬間か</label>
+                <select id="moment"></select>
+              </div>
+              <div class="field hidden" id="momentCustomWrap">
+                <label for="momentCustom">その他：自由入力</label>
+                <input type="text" id="momentCustom" placeholder="例：友達の会話に反応して振り向く瞬間" />
+              </div>
+
+              <div class="field">
+                <label for="lighting">【C】時間帯・明るさ</label>
+                <select id="lighting"></select>
+              </div>
+              <div class="field hidden" id="lightingCustomWrap">
+                <label for="lightingCustom">その他：自由入力</label>
+                <input type="text" id="lightingCustom" placeholder="例：夜の暖色ライト＋少し白飛び" />
+              </div>
+
+              <div class="field full">
+                <label for="sceneExtra">シーンの追加メモ</label>
+                <div class="sub-label">背景小物・周囲の雰囲気など</div>
+                <input type="text" id="sceneExtra" placeholder="例：木のテーブル、小皿、ボウル、グラス、食べ残し、壁のメニュー紙、近くに友人の気配" />
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title"><span class="section-number">4</span>仕上がり</h2>
+            <p class="section-note">自然さや生活感、アスペクト比などを選んでください。</p>
+            <div class="fields">
+              <div class="field">
+                <label for="realism">【A】リアルさ</label>
+                <select id="realism"></select>
+              </div>
+              <div class="field hidden" id="realismCustomWrap">
+                <label for="realismCustom">その他：自由入力</label>
+                <input type="text" id="realismCustom" placeholder="例：画質は粗いが雰囲気は自然" />
+              </div>
+
+              <div class="field">
+                <label for="styling">【B】服装・小物</label>
+                <select id="styling"></select>
+              </div>
+              <div class="field hidden" id="stylingCustomWrap">
+                <label for="stylingCustom">その他：自由入力</label>
+                <input type="text" id="stylingCustom" placeholder="例：ニット、シンプルなアクセ、飲みかけのグラス" />
+              </div>
+
+              <div class="field">
+                <label for="size">【D】サイズ</label>
+                <select id="size"></select>
+              </div>
+              <div class="field hidden" id="sizeCustomWrap">
+                <label for="sizeCustom">その他：自由入力</label>
+                <input type="text" id="sizeCustom" placeholder="例：4:5, 3:4, portrait" />
+              </div>
+
+              <div class="field full">
+                <label for="finishExtra">追加条件</label>
+                <div class="sub-label">ブレ、ノイズ、白飛び、UIの雰囲気など</div>
+                <input type="text" id="finishExtra" placeholder="例：SNS動画っぽい圧縮画質、少しブレ、雑な構図、やや白飛び、スマホのノイズ感" />
+              </div>
+            </div>
+
+            <div class="field full" style="margin-top:14px;">
+              <label>出力形式</label>
+              <div class="toggle-row">
+                <button type="button" class="toggle-btn active" data-output-mode="english">英語プロンプトのみ</button>
+              </div>
+              <div class="hint">日本語で入力しても、生成される最終プロンプトは英語で出力されます。未登録の日本語表現は英語の汎用表現へ自動整形されます。</div>
+            </div>
+
+            <div class="actions">
+              <button class="btn-primary" id="generateBtn" type="button">Prompt更新</button>
+              <button class="btn-primary" id="generateImageBtn" type="button">Image2で画像生成</button>
+              <button class="btn-secondary" id="copyPromptBtn" type="button">Promptをコピー</button>
+              <button class="btn-secondary" id="copyNegativeBtn" type="button">Negativeをコピー</button>
+              <button class="btn-secondary" id="copyAllBtn" type="button">両方まとめてコピー</button>
+              <button class="btn-secondary" id="downloadBtn" type="button">TXTで保存</button>
+              <button class="btn-secondary" id="resetBtn" type="button">初期値に戻す</button>
+            </div>
+            <div id="status" class="status"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="card-inner">
+          <h2 class="side-title">出力プレビュー</h2>
+          <p class="side-note">右側には、Image2にそのまま貼りやすいように分離した Prompt と Negative Prompt を表示します。</p>
+
+          <div class="mini-panel">
+            <h3>現在の選択</h3>
+            <div class="summary-box">
+              <div class="chips" id="summaryChips"></div>
+            </div>
+          </div>
+
+          <div class="preview-meta">
+            <div class="meta-card">
+              <strong>UI演出</strong>
+              <span id="uiHint"></span>
+            </div>
+            <div class="meta-card">
+              <strong>アスペクト比</strong>
+              <span id="aspectHint"></span>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:16px;">
+            <label for="output">Prompt</label>
+            <textarea id="output" spellcheck="false"></textarea>
+            <div class="hint">Image2 の Prompt 欄にそのまま貼れる想定です。</div>
+          </div>
+
+          <div class="field" style="margin-top:16px;">
+            <label for="negativeOutput">Negative Prompt</label>
+            <textarea id="negativeOutput" spellcheck="false"></textarea>
+            <div class="hint">Negative Prompt 欄にそのまま貼れる想定です。</div>
+          </div>
+
+          <div class="negative-box">
+            <details>
+              <summary>ネガティブプロンプト一覧を見る</summary>
+              <p id="negativePreview"></p>
+            </details>
+          </div>
+
+          <div class="gen-panel">
+            <h3>画像生成</h3>
+            <p>このHTMLは同一オリジンの <code>/api/image2-generate</code> に Prompt / Negative Prompt / aspect_ratio をPOSTし、返ってきた画像をここに表示します。</p>
+            <div class="hint">サーバー側で OPENAI_API_KEY を使って gpt-image-1 を呼び出す想定です。フロントにはAPIキーを書きません。</div>
+            <div id="imageResultEmpty" class="empty-result">ここに生成結果が表示されます。「Image2で画像生成」を押すと <code>/api/image2-generate</code> を呼び出します。</div>
+            <div id="imageResults" class="result-grid"></div>
+          </div>
+
+          <div class="footer-note">
+            exact TikTok logo や exact branded app screenshot は避ける設定です。<br>
+            「TikTokそのもの」ではなく、<strong>短尺動画アプリ風の自然なUI</strong>として出力します。
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const options = {
+      videoType: [
+        { value: '1', jp: 'ショート動画の1シーン素材', en: 'short-video scene material' },
+        { value: '2', jp: 'TikTok切り抜き風', en: 'TikTok clip-style frame' },
+        { value: '3', jp: 'ストーリー投稿風', en: 'story post-style frame' },
+        { value: '4', jp: 'BeReal風', en: 'BeReal-style frame' },
+        { value: '5', jp: 'プロフィール画像', en: 'profile image' },
+        { value: '6', jp: '広告・訴求用の自然な素材', en: 'natural ad / promotional material' },
+        { value: '7', jp: 'その他：自由入力', en: 'other' }
+      ],
+      subject: [
+        { value: '1', jp: '20代女性', en: 'woman in her 20s' },
+        { value: '2', jp: '30代女性', en: 'woman in her 30s' },
+        { value: '3', jp: '20代男性', en: 'man in his 20s' },
+        { value: '4', jp: '30代男性', en: 'man in his 30s' },
+        { value: '5', jp: '主婦・母親', en: 'housewife or mother' },
+        { value: '6', jp: '会社員', en: 'office worker' },
+        { value: '7', jp: 'フリーター', en: 'part-time worker' },
+        { value: '8', jp: '看護師', en: 'nurse' },
+        { value: '9', jp: '転職希望者', en: 'person considering a career change' },
+        { value: '10', jp: '副業に興味がある人', en: 'person interested in side hustles' },
+        { value: '11', jp: '学生', en: 'student' },
+        { value: '12', jp: '店員・アルバイト', en: 'shop staff or part-time staff' },
+        { value: '13', jp: 'コンビニ店員', en: 'convenience store staff' },
+        { value: '14', jp: 'カフェ店員', en: 'cafe staff' },
+        { value: '15', jp: '事務職', en: 'administrative worker' },
+        { value: '16', jp: '営業職', en: 'sales worker' },
+        { value: '17', jp: '元面接官', en: 'former interviewer' },
+        { value: '18', jp: '顔なし・手元だけ', en: 'faceless subject or hands only' },
+        { value: '19', jp: 'その他：自由入力', en: 'other' }
+      ],
+      appearance: [
+        { value: '1', jp: '日本人風', en: 'Japanese-looking' },
+        { value: '2', jp: '韓国人風', en: 'Korean-looking' },
+        { value: '3', jp: 'アジア系ミックス風', en: 'Asian mixed-looking' },
+        { value: '4', jp: '海外風', en: 'international-looking' },
+        { value: '5', jp: '指定なし', en: 'unspecified appearance' },
+        { value: '6', jp: 'その他：自由入力', en: 'other' }
+      ],
+      faceVisibility: [
+        { value: '1', jp: '顔あり', en: 'full face visible' },
+        { value: '2', jp: '横顔', en: 'side profile' },
+        { value: '3', jp: '後ろ姿', en: 'back view' },
+        { value: '4', jp: '顔の一部だけ', en: 'only part of the face visible' },
+        { value: '5', jp: 'スマホで顔を隠す', en: 'face partially hidden by a smartphone' },
+        { value: '6', jp: '手元だけ', en: 'hands only' },
+        { value: '7', jp: '顔なし', en: 'no face visible' },
+        { value: '8', jp: '遠目で顔がはっきり見えない', en: 'face unclear from a distance' },
+        { value: '9', jp: 'その他：自由入力', en: 'other' }
+      ],
+      place: [
+        { value: '1', jp: 'カフェの席', en: 'at a cafe table' },
+        { value: '2', jp: '自宅の机', en: 'at a desk at home' },
+        { value: '3', jp: '駅前', en: 'in front of a train station' },
+        { value: '4', jp: '電車内', en: 'inside a train carriage' },
+        { value: '5', jp: '友達といる居酒屋', en: 'at a casual Japanese izakaya with friends' },
+        { value: '6', jp: '鏡の前', en: 'in front of a mirror' },
+        { value: '7', jp: '街中の歩道', en: 'on a city sidewalk' },
+        { value: '8', jp: 'その他：自由入力', en: 'other' }
+      ],
+      moment: [
+        { value: '1', jp: 'スマホを見ている', en: 'looking at a smartphone' },
+        { value: '2', jp: 'スマホで顔の一部を隠している', en: 'partially hiding the face with a smartphone' },
+        { value: '3', jp: '飲み物を持って少し横を向いている', en: 'holding a drink and slightly turning sideways' },
+        { value: '4', jp: '友達に撮られて少し油断している', en: 'slightly off guard while being casually filmed by a friend' },
+        { value: '5', jp: '歩きながらスマホを確認している', en: 'checking a smartphone while walking' },
+        { value: '6', jp: '鏡越しにスマホを持っている', en: 'holding a smartphone through a mirror reflection' },
+        { value: '7', jp: 'その他：自由入力', en: 'other' }
+      ],
+      lighting: [
+        { value: '1', jp: '朝・自然光', en: 'morning natural light' },
+        { value: '2', jp: '昼・明るい', en: 'bright daytime light' },
+        { value: '3', jp: '夕方・西日', en: 'late afternoon sunlight' },
+        { value: '4', jp: '夜・室内照明', en: 'night indoor lighting' },
+        { value: '5', jp: '夜・コンビニの蛍光灯', en: 'night convenience-store fluorescent lighting' },
+        { value: '6', jp: '夜・居酒屋の暖色照明', en: 'night warm izakaya lighting' },
+        { value: '7', jp: '少し暗め', en: 'slightly dim lighting' },
+        { value: '8', jp: '明るいけど白飛び気味', en: 'bright with slight highlight blowout' },
+        { value: '9', jp: '曇りの日の柔らかい光', en: 'soft cloudy-day light' },
+        { value: '10', jp: '駅や街灯の光', en: 'station or streetlight illumination' },
+        { value: '11', jp: 'その他：自由入力', en: 'other' }
+      ],
+      realism: [
+        { value: '1', jp: '少しだけ素人っぽく', en: 'slightly amateur-looking' },
+        { value: '2', jp: 'かなり自然なスマホ写真', en: 'very natural smartphone-photo feel' },
+        { value: '3', jp: '生活感強め', en: 'strong everyday realism' },
+        { value: '4', jp: '少しブレ・ノイズ多め', en: 'more blur and smartphone noise' },
+        { value: '5', jp: '清潔感あり', en: 'clean but natural' },
+        { value: '6', jp: 'かなり雑な日常写真', en: 'very rough everyday snapshot' },
+        { value: '7', jp: 'その他：自由入力', en: 'other' }
+      ],
+      styling: [
+        { value: '1', jp: 'おまかせ', en: 'styling left to the model' },
+        { value: '2', jp: '仕事着・制服風', en: 'workwear or uniform-like clothing' },
+        { value: '3', jp: '私服寄り', en: 'casual private clothes' },
+        { value: '4', jp: 'スマホを目立たせる', en: 'smartphone visually prominent' },
+        { value: '5', jp: '飲み物や小物も入れる', en: 'include drinks and small props' },
+        { value: '6', jp: '生活感のある背景小物を増やす', en: 'add more lived-in background props' },
+        { value: '7', jp: 'その他：自由入力', en: 'other' }
+      ],
+      size: [
+        { value: '1', jp: '自動でOK', en: 'auto' },
+        { value: '2', jp: '1:1にしたい', en: '1:1' },
+        { value: '3', jp: '9:16にしたい', en: '9:16' },
+        { value: '4', jp: '16:9にしたい', en: '16:9' },
+        { value: '5', jp: 'その他：自由入力', en: 'other' }
+      ]
+    };
+
+    const negativePrompt = 'exact TikTok logo, exact branded app screenshot, watermark, overly detailed tiny text, broken large text, cinematic lighting, studio photography, perfect symmetry, ultra detailed skin, glossy CG, AI beauty look, over-retouched skin, unrealistic anatomy, fashion editorial pose, perfect composition, plastic skin, dramatic lighting, luxury advertisement, overly smooth skin, professional portrait, professional model pose, exaggerated beauty filter, overly sharp image, fantasy-like lighting, sexualized pose, underage appearance, revealing outfit, cosplay look, luxury restaurant, cafe, coffee shop, professional influencer post, perfect still photo, clean commercial photo, readable private information';
+
+    const uiFlavorMap = {
+      '1': 'Include a natural short-video app interface with right-side engagement icons, a circular profile icon, a username area, a caption area near the bottom, hashtag-style text, and a small music track area.',
+      '2': 'Include a TikTok-like short-video app interface with right-side engagement icons, a circular profile icon, a username area, a caption area near the bottom, hashtag-style text, and a small music track area. The UI should feel like a natural short-video app screen, not an exact branded app screenshot.',
+      '3': 'Include a subtle story-post style social UI overlay that feels natural and not exactly branded.',
+      '4': 'Keep the mood like an everyday BeReal-style snapshot, spontaneous and casual, without exact branding.',
+      '5': 'Keep the image social-media-ready, with minimal or no interface overlay.',
+      '6': 'Make it naturally usable for advertising or promotion, but avoid polished commercial-photo perfection.',
+      '7': 'Include a natural social-media style interface or presentation layer if it fits the custom request, but avoid exact branded replication.'
+    };
+
+    const aspectMap = {
+      'auto': 'Use a suitable aspect ratio automatically.',
+      '1:1': 'Square composition, 1:1 aspect ratio.',
+      '9:16': 'Vertical 9:16 framing, like a smartphone short-video screen.',
+      '16:9': 'Wide 16:9 framing.'
+    };
+
+    const customFieldMap = [
+      { selectId: 'videoType', trigger: '7', wrapId: 'videoTypeCustomWrap', inputId: 'videoTypeCustom' },
+      { selectId: 'subject', trigger: '19', wrapId: 'subjectCustomWrap', inputId: 'subjectCustomChoice' },
+      { selectId: 'appearance', trigger: '6', wrapId: 'appearanceCustomWrap', inputId: 'appearanceCustom' },
+      { selectId: 'faceVisibility', trigger: '9', wrapId: 'faceVisibilityCustomWrap', inputId: 'faceVisibilityCustom' },
+      { selectId: 'place', trigger: '8', wrapId: 'placeCustomWrap', inputId: 'placeCustom' },
+      { selectId: 'moment', trigger: '7', wrapId: 'momentCustomWrap', inputId: 'momentCustom' },
+      { selectId: 'lighting', trigger: '11', wrapId: 'lightingCustomWrap', inputId: 'lightingCustom' },
+      { selectId: 'realism', trigger: '7', wrapId: 'realismCustomWrap', inputId: 'realismCustom' },
+      { selectId: 'styling', trigger: '7', wrapId: 'stylingCustomWrap', inputId: 'stylingCustom' },
+      { selectId: 'size', trigger: '5', wrapId: 'sizeCustomWrap', inputId: 'sizeCustom' }
+    ];
+
+    const phraseDictionary = [
+      ['SNS動画っぽい圧縮画質', 'compressed social-media video quality'],
+      ['SNS動画風の圧縮画質', 'compressed social-media video quality'],
+      ['圧縮画質', 'compressed video quality'],
+      ['わずかなブレ', 'slight motion blur'],
+      ['少しブレ', 'slight motion blur'],
+      ['ブレ', 'motion blur'],
+      ['スマホ撮影のノイズ', 'smartphone camera noise'],
+      ['スマホのノイズ感', 'smartphone camera noise'],
+      ['ノイズ感', 'visible noise'],
+      ['少し雑な構図', 'slightly imperfect framing'],
+      ['雑な構図', 'imperfect framing'],
+      ['不完全な構図', 'imperfect framing'],
+      ['切れた画角', 'cropped framing'],
+      ['やや低めのシャープさ', 'slightly low sharpness'],
+      ['低めのシャープさ', 'low sharpness'],
+      ['圧縮由来の粗さ', 'compression artifacts'],
+      ['ハイライトのやや白飛び', 'slight overexposure in highlights'],
+      ['やや白飛び', 'slight overexposure'],
+      ['白飛び', 'overexposure'],
+      ['ムラのある室内照明', 'uneven indoor lighting'],
+      ['暖色の店内照明', 'warm indoor lighting'],
+      ['自然な肌感', 'realistic skin texture'],
+      ['シンプルなクリーム色のリブニットトップス', 'a simple cream ribbed knit top'],
+      ['シンプルなクリーム色のリブニット', 'a simple cream ribbed knit top'],
+      ['近距離の不完全な構図', 'close imperfect framing'],
+      ['髪のかかり方', 'hair partially covering the face'],
+      ['顔の一部だけが見えている', 'only part of the face is visible'],
+      ['木のテーブル', 'a wooden table'],
+      ['小皿', 'small plates'],
+      ['ボウル', 'bowls'],
+      ['ドリンクグラス', 'drink glasses'],
+      ['グラス', 'drink glasses'],
+      ['食べ残し', 'leftover food'],
+      ['壁のメニュー紙', 'menu papers on the wall'],
+      ['カジュアルな座席', 'casual restaurant seating'],
+      ['近くや画面外に友人の気配', 'hints of friends nearby or off-frame'],
+      ['近くに友人の気配', 'hints of friends nearby'],
+      ['友人の気配', 'hints of friends nearby'],
+      ['居酒屋', 'izakaya'],
+      ['カフェ', 'cafe'],
+      ['駅前', 'in front of a train station'],
+      ['電車内', 'inside a train carriage'],
+      ['鏡の前', 'in front of a mirror'],
+      ['街中の歩道', 'on a city sidewalk'],
+      ['夜', 'night'],
+      ['朝', 'morning'],
+      ['夕方', 'late afternoon'],
+      ['自然光', 'natural light'],
+      ['室内照明', 'indoor lighting'],
+      ['暖色照明', 'warm lighting'],
+      ['生活感', 'lived-in realism'],
+      ['私服', 'casual private clothes'],
+      ['仕事着', 'workwear'],
+      ['制服風', 'uniform-like clothing']
+    ];
+
+    let outputMode = 'english';
+
+    function translateUserText(text) {
+      if (!text) return '';
+      let result = String(text).trim();
+      if (!result) return '';
+
+      result = result
+        .replace(/　/g, ' ')
+        .replace(/[、，]/g, ', ')
+        .replace(/[。]/g, '. ')
+        .replace(/[・]/g, ', ')
+        .replace(/[（）]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      phraseDictionary.forEach(([jp, en]) => {
+        result = result.split(jp).join(en);
+      });
+
+      result = result
+        .replace(/近距離/g, 'close-up')
+        .replace(/不完全な/g, 'imperfect')
+        .replace(/画角/g, 'angle')
+        .replace(/構図/g, 'framing')
+        .replace(/雰囲気/g, 'mood')
+        .replace(/背景/g, 'background')
+        .replace(/友人/g, 'friends')
+        .replace(/女性/g, 'woman')
+        .replace(/男性/g, 'man')
+        .replace(/顔/g, 'face')
+        .replace(/髪/g, 'hair')
+        .replace(/机/g, 'desk')
+        .replace(/店内/g, 'inside the restaurant')
+        .replace(/暖色/g, 'warm-toned')
+        .replace(/自然な/g, 'natural')
+        .replace(/少し/g, 'slightly')
+        .replace(/わずかな/g, 'slight')
+        .replace(/やや/g, 'slightly')
+        .replace(/くらい/g, 'around')
+        .replace(/肩/g, 'shoulder')
+        .replace(/暗め/g, 'dark')
+        .replace(/英語/g, 'English')
+        .replace(/日本語/g, 'Japanese');
+
+      result = result
+        .replace(/[\u3040-\u30ff\u3400-\u9fffー]+/g, ' custom detail ')
+        .replace(/(custom detail\s*){2,}/g, 'custom detail ')
+        .replace(/\s+,/g, ',')
+        .replace(/,\s*,/g, ', ')
+        .replace(/\.\s*\./g, '.')
+        .replace(/\s+/g, ' ')
+        .replace(/^,\s*/, '')
+        .trim();
+
+      return result;
+    }
+
+    function fillSelect(selectId, items) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = '';
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = `【${item.value}】 ${item.jp}`;
+        select.appendChild(option);
+      });
+    }
+
+    function getOption(selectId, value) {
+      return options[selectId].find(item => item.value === value);
+    }
+
+    function getFieldText(selectId) {
+      const select = document.getElementById(selectId);
+      const value = select.value;
+      const option = getOption(selectId, value);
+      if (!option) return { jp: '', en: '' };
+
+      const customMap = customFieldMap.find(item => item.selectId === selectId);
+      if (customMap && value === customMap.trigger) {
+        const customValue = document.getElementById(customMap.inputId).value.trim();
+        if (customValue) {
+          return { jp: customValue, en: translateUserText(customValue) };
+        }
+      }
+      return option;
+    }
+
+    function toggleCustomField(selectId, triggerValue, wrapId, inputId) {
+      const current = document.getElementById(selectId).value;
+      const wrap = document.getElementById(wrapId);
+      const input = document.getElementById(inputId);
+      if (current === triggerValue) {
+        wrap.classList.remove('hidden');
+      } else {
+        wrap.classList.add('hidden');
+        input.value = '';
+      }
+    }
+
+    function applyCustomVisibility() {
+      customFieldMap.forEach(item => {
+        toggleCustomField(item.selectId, item.trigger, item.wrapId, item.inputId);
+      });
+    }
+
+    function setStatus(message, type = '') {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = 'status';
+      if (type) status.classList.add(type);
+    }
+
+    function getAspectValue() {
+      const size = getFieldText('size').en;
+      const customSize = document.getElementById('sizeCustom').value.trim();
+      if (size === 'other' && customSize) return customSize;
+      return size;
+    }
+
+    function buildPrompt() {
+      const videoType = getFieldText('videoType');
+      const subject = getFieldText('subject');
+      const appearance = getFieldText('appearance');
+      const faceVisibility = getFieldText('faceVisibility');
+      const place = getFieldText('place');
+      const moment = getFieldText('moment');
+      const lighting = getFieldText('lighting');
+      const realism = getFieldText('realism');
+      const styling = getFieldText('styling');
+      const size = getAspectValue();
+
+      const subjectExtra = translateUserText(document.getElementById('subjectExtra').value.trim());
+      const sceneExtra = translateUserText(document.getElementById('sceneExtra').value.trim());
+      const finishExtra = translateUserText(document.getElementById('finishExtra').value.trim());
+
+      const isVertical = String(size).toLowerCase() === '9:16';
+      const isIzakaya = place.en.toLowerCase().includes('izakaya');
+      const isProfile = videoType.en.toLowerCase().includes('profile image');
+      const faceText = faceVisibility.en;
+
+      const lines = [];
+      const openLine = [
+        'A realistic',
+        isVertical ? 'vertical 9:16' : '',
+        videoType.en,
+        'of an adult',
+        appearance.en === 'unspecified appearance' ? '' : appearance.en,
+        subject.en
+      ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      lines.push(openLine + '.');
+
+      lines.push(`Set the scene ${place.en}, under ${lighting.en}, captured as ${moment.en}.`);
+      if (!isProfile) {
+        lines.push(`The subject should appear ${faceText}, with natural body posture and an unposed expression.`);
+      }
+
+      if (styling.en === 'styling left to the model') {
+        lines.push('Clothing and small props can be chosen naturally to fit the scene and the character.');
+      } else {
+        lines.push(`Styling direction: ${styling.en}.`);
+      }
+
+      if (subjectExtra) {
+        lines.push(`Additional subject details: ${subjectExtra}.`);
+      }
+
+      if (isIzakaya) {
+        lines.push('The location must clearly look like a casual Japanese izakaya, not a cafe or studio.');
+      }
+
+      if (sceneExtra) {
+        lines.push(`Scene details: ${sceneExtra}.`);
+      }
+
+      lines.push(uiFlavorMap[document.getElementById('videoType').value] || uiFlavorMap['7']);
+
+      if (aspectMap[size]) {
+        lines.push(aspectMap[size]);
+      } else if (size && size !== 'other') {
+        lines.push(`Use ${size} framing.`);
+      }
+
+      const realismBits = [
+        realism.en,
+        'lived-in realism',
+        'casual daily life mood',
+        'accidental composition',
+        'asymmetry',
+        'non-professional snapshot',
+        'not cinematic',
+        'not studio photography',
+        'not over-retouched'
+      ];
+      lines.push(`Visual mood and realism: ${realismBits.join(', ')}.`);
+
+      if (finishExtra) {
+        lines.push(`Texture and rendering notes: ${finishExtra}.`);
+      }
+
+      return lines.join(' ');
+    }
+
+    function buildCombinedPromptText() {
+      return `Prompt:\n${document.getElementById('output').value}\n\nNegative Prompt:\n${document.getElementById('negativeOutput').value}`;
+    }
+
+    function getImage2Payload() {
+      return {
+        prompt: document.getElementById('output').value,
+        negative_prompt: document.getElementById('negativeOutput').value,
+        aspect_ratio: getAspectValue() || 'auto',
+        model: 'gpt-image-1'
+      };
+    }
+
+    function base64ToDataUrl(base64) {
+      if (!base64) return '';
+      if (String(base64).startsWith('data:')) return base64;
+      return `data:image/png;base64,${base64}`;
+    }
+
+    function extractImageUrlsFromResponse(data) {
+      if (!data) return [];
+      const collected = [];
+      const pushCandidate = (item) => {
+        if (!item) return;
+        if (typeof item === 'string') {
+          collected.push(item);
+          return;
+        }
+        if (item.url) collected.push(item.url);
+        if (item.image_url) collected.push(item.image_url);
+        if (item.b64_json) collected.push(base64ToDataUrl(item.b64_json));
+        if (item.base64) collected.push(base64ToDataUrl(item.base64));
+      };
+
+      if (Array.isArray(data)) data.forEach(pushCandidate);
+      if (Array.isArray(data.images)) data.images.forEach(pushCandidate);
+      if (Array.isArray(data.data)) data.data.forEach(pushCandidate);
+      if (data.image_url) pushCandidate(data.image_url);
+      if (data.url) pushCandidate(data.url);
+      if (data.b64_json) pushCandidate({ b64_json: data.b64_json });
+      if (data.base64) pushCandidate({ base64: data.base64 });
+
+      return collected.filter(Boolean);
+    }
+
+    function renderGeneratedImages(imageUrls) {
+      const empty = document.getElementById('imageResultEmpty');
+      const container = document.getElementById('imageResults');
+      container.innerHTML = '';
+
+      if (!imageUrls.length) {
+        empty.textContent = '画像は返ってきましたが、表示可能な URL / Base64 を見つけられませんでした。APIレスポンス形式を確認してください。';
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      imageUrls.forEach((url, index) => {
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = `generated image ${index + 1}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = '画像を別タブで開く';
+        card.appendChild(img);
+        card.appendChild(link);
+        container.appendChild(card);
+      });
+    }
+
+    async function generateWithImage2() {
+      generatePrompt(false);
+      const endpoint = '/api/image2-generate';
+
+      try {
+        setStatus('画像生成中です…', '');
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getImage2Payload())
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const images = extractImageUrlsFromResponse(data);
+        renderGeneratedImages(images);
+        setStatus(images.length ? '画像生成が完了しました。' : 'レスポンスは受信しましたが、画像を抽出できませんでした。', images.length ? 'success' : 'error');
+      } catch (error) {
+        document.getElementById('imageResultEmpty').textContent = '画像生成に失敗しました。/api/image2-generate が同じサーバーで動いているか確認してください。';
+        document.getElementById('imageResultEmpty').classList.remove('hidden');
+        document.getElementById('imageResults').innerHTML = '';
+        setStatus(`画像生成に失敗しました: ${error.message}`, 'error');
+      }
+    }
+
+    function renderSummary() {
+      const summary = document.getElementById('summaryChips');
+      const chips = [
+        ['タイプ', getFieldText('videoType').jp],
+        ['被写体', getFieldText('subject').jp],
+        ['見た目', getFieldText('appearance').jp],
+        ['顔', getFieldText('faceVisibility').jp],
+        ['場所', getFieldText('place').jp],
+        ['瞬間', getFieldText('moment').jp],
+        ['光', getFieldText('lighting').jp],
+        ['リアルさ', getFieldText('realism').jp],
+        ['服装', getFieldText('styling').jp],
+        ['サイズ', getFieldText('size').jp === 'その他：自由入力' ? (document.getElementById('sizeCustom').value.trim() || 'その他') : getFieldText('size').jp]
+      ];
+      summary.innerHTML = chips.map(([k, v]) => `<span class="chip">${k}：${escapeHtml(v || '未指定')}</span>`).join('');
+
+      document.getElementById('uiHint').textContent = (() => {
+        const current = document.getElementById('videoType').value;
+        if (current === '2') return '短尺動画アプリ風UIを明確に含める';
+        if (current === '3') return 'ストーリー投稿風の控えめUI';
+        if (current === '4') return 'BeReal風の自然な日常感';
+        if (current === '5') return 'UIは最小限またはなし';
+        return '用途に応じた自然なSNS風UI';
+      })();
+
+      document.getElementById('aspectHint').textContent = getAspectValue() || 'auto';
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function generatePrompt(showStatus = false) {
+      renderSummary();
+      document.getElementById('negativePreview').textContent = negativePrompt;
+      document.getElementById('output').value = buildPrompt();
+      document.getElementById('negativeOutput').value = negativePrompt;
+      if (showStatus) setStatus('画像生成用の Prompt / Negative Prompt を更新しました。', 'success');
+    }
+
+    function legacyCopyText(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', 'readonly');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      let success = false;
+      try {
+        success = document.execCommand('copy');
+      } catch (error) {
+        success = false;
+      }
+      document.body.removeChild(textarea);
+      return success;
+    }
+
+    async function copyTextWithStatus(text, successMessage) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          setStatus(successMessage, 'success');
+          return;
+        }
+
+        if (legacyCopyText(text)) {
+          setStatus(successMessage, 'success');
+          return;
+        }
+
+        setStatus('コピーに失敗しました。手動でコピーしてください。', 'error');
+      } catch (error) {
+        if (legacyCopyText(text)) {
+          setStatus(successMessage, 'success');
+        } else {
+          setStatus('コピーに失敗しました。手動でコピーしてください。', 'error');
+        }
+      }
+    }
+
+    function copyPrompt() {
+      return copyTextWithStatus(document.getElementById('output').value, 'Prompt をコピーしました。');
+    }
+
+    function copyNegativePrompt() {
+      return copyTextWithStatus(document.getElementById('negativeOutput').value, 'Negative Prompt をコピーしました。');
+    }
+
+    function copyAllPrompts() {
+      return copyTextWithStatus(buildCombinedPromptText(), 'Prompt と Negative Prompt をまとめてコピーしました。');
+    }
+
+    function downloadPrompt() {
+      const blob = new Blob([buildCombinedPromptText()], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'image2-prompts.txt';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Prompt と Negative Prompt を TXT ファイルとして保存しました。', 'success');
+    }
+
+    function setDefaults() {
+      document.getElementById('videoType').value = '2';
+      document.getElementById('subject').value = '1';
+      document.getElementById('appearance').value = '1';
+      document.getElementById('faceVisibility').value = '4';
+      document.getElementById('place').value = '5';
+      document.getElementById('moment').value = '4';
+      document.getElementById('lighting').value = '6';
+      document.getElementById('realism').value = '3';
+      document.getElementById('styling').value = '3';
+      document.getElementById('size').value = '3';
+
+      document.getElementById('videoTypeCustom').value = '';
+      document.getElementById('subjectCustomChoice').value = '';
+      document.getElementById('appearanceCustom').value = '';
+      document.getElementById('faceVisibilityCustom').value = '';
+      document.getElementById('placeCustom').value = '';
+      document.getElementById('momentCustom').value = '';
+      document.getElementById('lightingCustom').value = '';
+      document.getElementById('realismCustom').value = '';
+      document.getElementById('stylingCustom').value = '';
+      document.getElementById('sizeCustom').value = '';
+
+      document.getElementById('subjectExtra').value = 'シンプルなクリーム色のリブニットトップス、近距離の不完全な構図や髪のかかり方、切れた画角によって顔の一部だけが見えている';
+      document.getElementById('sceneExtra').value = '木のテーブル、小皿、ボウル、ドリンクグラス、食べ残し、壁のメニュー紙、暖色の店内照明、カジュアルな座席、近くや画面外に友人の気配';
+      document.getElementById('finishExtra').value = 'SNS動画っぽい圧縮画質、わずかなブレ、少し雑な構図、ハイライトのやや白飛び、ムラのある室内照明、自然な肌感、スマホ撮影のノイズ、やや低めのシャープさ、圧縮由来の粗さ';
+
+      outputMode = 'english';
+      document.querySelectorAll('[data-output-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.outputMode === 'english');
+      });
+
+      applyCustomVisibility();
+      generatePrompt();
+      setStatus('初期値に戻しました。', 'success');
+    }
+
+    function initModeButtons() {
+      document.querySelectorAll('[data-output-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          outputMode = btn.dataset.outputMode;
+          document.querySelectorAll('[data-output-mode]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          generatePrompt(true);
+        });
+      });
+    }
+
+    function initEvents() {
+      const allInputs = [
+        'videoType','subject','appearance','faceVisibility','place','moment','lighting','realism','styling','size',
+        'videoTypeCustom','subjectCustomChoice','appearanceCustom','faceVisibilityCustom','placeCustom','momentCustom','lightingCustom','realismCustom','stylingCustom','sizeCustom',
+        'subjectExtra','sceneExtra','finishExtra'
+      ];
+
+      allInputs.forEach(id => {
+        const el = document.getElementById(id);
+        const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(eventType, () => {
+          applyCustomVisibility();
+          generatePrompt();
+          setStatus('');
+        });
+        if (eventType !== 'input') {
+          el.addEventListener('input', () => {
+            applyCustomVisibility();
+            generatePrompt();
+            setStatus('');
+          });
+        }
+      });
+
+      document.getElementById('generateBtn').addEventListener('click', () => generatePrompt(true));
+      document.getElementById('generateImageBtn').addEventListener('click', generateWithImage2);
+      document.getElementById('copyPromptBtn').addEventListener('click', copyPrompt);
+      document.getElementById('copyNegativeBtn').addEventListener('click', copyNegativePrompt);
+      document.getElementById('copyAllBtn').addEventListener('click', copyAllPrompts);
+      document.getElementById('downloadBtn').addEventListener('click', downloadPrompt);
+      document.getElementById('resetBtn').addEventListener('click', setDefaults);
+    }
+
+    function init() {
+      Object.keys(options).forEach(key => fillSelect(key, options[key]));
+      initModeButtons();
+      initEvents();
+      setDefaults();
+    }
+
+    init();
+  </script>
+</body>
+</html>
